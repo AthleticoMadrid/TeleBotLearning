@@ -1,9 +1,10 @@
 #файл с обработчиками
 from glob import glob                                     #для выборки картинок по названию
+import os
 from random import choice
-from utils import get_smile, main_keyboard, play_random_numbers
+from utils import get_smile, main_keyboard, play_random_numbers, has_object_on_image
 
-def greet_user(update, context):            #update(то что пришло от телеграмма), context(отдаёт команды боту от нас)
+def greet_user(update, context):            #update(то что пришло от бота), context(отдаёт команды боту от нас)
     print("Вызван /Start")
     context.user_data['emoji'] = get_smile(context.user_data)
     update.message.reply_text(
@@ -46,3 +47,17 @@ def user_coordinates(update, context):
         reply_markup=main_keyboard()
     )                   #ответ от бота
 
+def check_user_photo(update, context):
+    update.message.reply_text('Обрабатываем фото')              #сообщение пользователю
+    os.makedirs('downloads', exist_ok=True)                     #создаётся папка 'downloads', если такой папки ещё нету
+    photo_file = context.bot.getFile(update.message.photo[-1].file_id)            #получаем id файла с фото
+    file_name = os.path.join('downloads', f"{update.message.photo[-1].file_id}.jpg")        #сохранение файла(os.path.join - соединяет пути)
+    photo_file.download(file_name)                      #скачиваем файл с указанного адреса
+    update.message.reply_text('Файл сохранён')          #сообщение пользователю
+    if has_object_on_image(file_name, 'car'):
+        update.message.reply_text('Обнаружен автомобиль, сохраняю его в библиотеку')
+        new_file_name = os.path.join('images', f'car_{photo_file.file_id}.jpg')
+        os.rename(file_name, new_file_name)                 #переименовывает файл вместе с именем папки и перемещает его
+    else:
+        os.remove(file_name)                #удаляет файл
+        update.message.reply_text('Тревога, автомобиль не обнаружен!')
